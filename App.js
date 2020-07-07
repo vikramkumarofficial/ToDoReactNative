@@ -1,114 +1,185 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
+// React Native
 import React from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
-  ScrollView,
-  View,
+  CheckBox,
   Text,
-  StatusBar,
+  View, FlatList
 } from 'react-native';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import ActionButton from 'react-native-action-button';
+import { Appbar } from 'react-native-paper';
+import Dialog from "react-native-dialog";
 
-const App: () => React$Node = () => {
-  return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
-};
+
+
+
+export default class App extends React.Component {
+
+  state = {
+    dialogVisible: false,
+    filterDialog: false,
+    taskToBeAdded: {},
+    taskList: [],
+    filter: { "all": true, "pending": false, "completed": false }
+  };
+
+  showDialog = () => {
+    this.setState({ dialogVisible: true });
+  };
+
+  showFilterDialog = () => {
+    this.setState({ filterDialog: true });
+  };
+
+  handleCancel = () => {
+    this.setState({ dialogVisible: false });
+  };
+
+
+  updateTaskList = (type, index, task) => {
+    if (type == "update") {
+      const updatedTask = [...this.state.taskList];
+      updatedTask[index].isCompleted = !updatedTask[index].isCompleted;
+      this.setState({ taskList: updatedTask });
+    }
+    else if (type == "delete") {
+      this.setState({
+        taskList: this.state.taskList.filter(item => item.key != task.key)
+      });
+
+    }
+
+  }
+
+
+  addTask = () => {
+    this.setState({
+      taskList: [...this.state.taskList, this.state.taskToBeAdded]
+    },
+      // console.log(this.state)
+    );
+    this.setState({ dialogVisible: false });
+    //Because SetState is Async
+    // console.log(this.state);
+  };
+
+  updateFilter = (type) => {
+    if (type == "All") {
+      this.setState({
+        filterDialog: false,
+        filter: { "all": true, "pending": false, "completed": false }
+      });
+    }
+    else if (type == "Completed") {
+      this.setState({
+        filterDialog: false,
+        filter: { "all": false, "pending": false, "completed": true }
+      });
+    }
+    else if (type == "Pending") {
+      this.setState({
+        filterDialog: false,
+        filter: { "all": false, "pending": true, "completed": false }
+      });
+    }
+  }
+
+  // filterDialog = () => {
+  //   return <Dialog.Container visible={this.state.filterDialog}>
+  //     <Dialog.Title>Filter Task</Dialog.Title>
+  //     <Dialog.Button label="Show All" onPress={this.updateFilter("All")} />
+  //     <Dialog.Button label="Show Completed" onPress={this.updateFilter("Completed")} />
+  //     <Dialog.Button label="Show Pending" onPress={this.updateFilter("Pending")} />
+  //   </Dialog.Container>
+  // }
+
+  handleDialogInput = (task) => {
+    // console.log(task);
+    this.setState({ taskToBeAdded: { "key": task, "isCompleted": false } });
+  }
+
+  toDoContainer = (task, index) => {
+    // console.log(task);
+    if (this.state.filter.completed && !task.isCompleted)
+      return null;
+    if (this.state.filter.pending && task.isCompleted)
+      return null;
+    return (
+      <View style={styles.toDoContainer} >
+        <CheckBox
+          value={task.isCompleted}
+          onValueChange={(value) => this.updateTaskList("update", index, task)}
+        />
+        <Text style={task.isCompleted ? styles.completedTask : styles.pendingTasks}>
+          {task.key}
+        </Text>
+        <Icon.Button
+          name="trash-o"
+          type='FontAwesome'
+          backgroundColor="#ff3300"
+          onPress={() => this.updateTaskList("delete", index, task)}
+        />
+      </View>
+    );
+  }
+
+
+  render() {
+    return (<View style={styles.container} >
+      <Appbar.Header>
+        <Appbar.Content title="To Do App" />
+        <Appbar.Action icon="filter" onPress={() => { this.showFilterDialog(); }} />
+      </Appbar.Header>
+      <Dialog.Container visible={this.state.dialogVisible}>
+        <Dialog.Title>Add To Do Task</Dialog.Title>
+        <Dialog.Input label="To Do" onChangeText={(task) => this.handleDialogInput(task)}></Dialog.Input>
+        <Dialog.Button label="Cancel" onPress={this.handleCancel} />
+        <Dialog.Button label="Add" onPress={this.addTask} />
+      </Dialog.Container>
+      <Dialog.Container visible={this.state.filterDialog}>
+        <Dialog.Title>Filter Task</Dialog.Title>
+        <Dialog.Button label="All" onPress={() => { this.updateFilter("All"); }} />
+        <Dialog.Button label="Completed" onPress={() => { this.updateFilter("Completed"); }} />
+        <Dialog.Button label="Pending" onPress={() => { this.updateFilter("Pending"); }} />
+      </Dialog.Container>
+      <FlatList data={this.state.taskList}
+        renderItem={({ item, index }) => this.toDoContainer(item, index)
+        }>
+      </FlatList>
+      <ActionButton
+        buttonColor="rgba(231,76,60,1)"
+        onPress={() => {
+          this.showDialog();
+        }}
+      />
+    </View >
+    );
+  }
+}
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  engine: {
-    position: 'absolute',
-    right: 0,
+  completedTask: {
+    color: '#ffad33',
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
+    fontSize: 14
   },
-  body: {
-    backgroundColor: Colors.white,
+  pendingTasks: {
+    color: '#000',
+    fontSize: 14
   },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
-  },
+  toDoContainer: {
+    height: 50,
+    margin: 10,
+    backgroundColor: '#b3ffb3',
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  }
 });
-
-export default App;
